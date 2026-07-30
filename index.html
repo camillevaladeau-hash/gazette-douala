@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Gazette de Douala</title>
+<style>
+  :root{
+    --green:#0b7a4b;
+    --red:#c8102e;
+    --yellow:#f2c200;
+    --ink:#141414;
+    --muted:#6b6b6b;
+    --line:#e6e4df;
+    --bg:#faf9f7;
+    --card:#ffffff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    display:flex;
+    justify-content:center;
+    padding:0 16px 80px;
+  }
+  .wrap{width:100%;max-width:780px;}
+
+  header{padding:56px 0 28px;}
+  .flagbar{display:flex;height:4px;width:72px;margin-bottom:22px;border-radius:2px;overflow:hidden;}
+  .flagbar span{flex:1;}
+  .flagbar span:nth-child(1){background:var(--green);}
+  .flagbar span:nth-child(2){background:var(--red);}
+  .flagbar span:nth-child(3){background:var(--yellow);}
+  h1{font-size:38px;font-weight:700;letter-spacing:-1.2px;line-height:1.1;}
+  .tagline{color:var(--muted);font-size:15px;margin-top:8px;max-width:560px;}
+  .progress{margin-top:20px;font-size:13px;color:var(--muted);}
+
+  /* ---------- Échelle de progression + grue ---------- */
+  .rail .track{position:absolute;left:0;right:0;bottom:9px;height:3px;background:var(--line);border-radius:2px;}
+  .rail .fill{position:absolute;left:0;bottom:9px;height:3px;background:var(--green);border-radius:2px;transition:width .5s ease;}
+  .rail .ticks{position:absolute;left:0;right:0;bottom:5px;display:grid;grid-template-columns:repeat(11,1fr);}
+  .rail .tick{justify-self:center;width:1px;height:7px;background:var(--line);}
+  .rail .tick.done{background:var(--green);}
+  .rail .tick.quiz{width:7px;height:7px;border-radius:50%;background:var(--card);border:1.5px solid var(--yellow);margin-bottom:-1px;}
+  .rail .tick.quiz.done{background:var(--yellow);}
+  .rail{position:relative;margin:34px 0 10px;height:52px;}
+  .crane{position:absolute;bottom:8px;width:62px;margin-left:-31px;transition:left .6s cubic-bezier(.3,.8,.4,1);}
+  .crane svg{display:block;width:100%;height:auto;}
+
+  nav{display:grid;grid-template-columns:repeat(11,1fr);gap:6px;margin:6px 0 34px;}
+  .chip{
+    border:1px solid var(--line);background:var(--card);border-radius:10px;
+    padding:9px 2px 8px;text-align:center;cursor:pointer;font-family:inherit;color:var(--ink);
+    transition:all .15s ease;position:relative;
+  }
+  .chip .n{display:block;font-size:15px;font-weight:600;letter-spacing:-.3px;}
+  .chip .dt{display:block;font-size:10px;color:var(--muted);margin-top:2px;}
+  .chip:hover:not(.locked){border-color:var(--ink);}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .chip.active .dt{color:rgba(255,255,255,.65);}
+  .chip.locked{opacity:.45;cursor:not-allowed;background:#f2f1ee;}
+  .chip.locked .n{color:var(--muted);}
+  .chip.today::before{content:"";position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--yellow);}
+  .chip.quiz:not(.locked):not(.active){border-color:var(--yellow);background:#fffbef;}
+
+  .daymeta{
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:26px;
+  }
+  .dayno{font-size:13px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--green);}
+  .daydate{font-size:13px;color:var(--muted);text-transform:capitalize;}
+  .todaytag{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;background:var(--yellow);color:#3a2f00;padding:2px 7px;border-radius:20px;}
+  .theme{font-size:13px;color:var(--muted);font-style:italic;width:100%;margin-top:2px;}
+
+  .item{padding:0 0 26px;margin-bottom:26px;border-bottom:1px solid var(--line);}
+  .rub{
+    display:inline-block;font-size:11px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;
+    padding:3px 9px;border-radius:20px;margin-bottom:10px;background:#eef4f0;color:var(--green);
+  }
+  .rub[data-r="Politique"],.rub[data-r="Histoire"]{background:#fdeef0;color:var(--red);}
+  .rub[data-r="Climat"],.rub[data-r="Culture"],.rub[data-r="Territoire"],.rub[data-r="Musique"],.rub[data-r="Architecture"]{background:#fdf6df;color:#8a6d00;}
+  .rub[data-r="Société"],.rub[data-r="Population"],.rub[data-r="Langue"],.rub[data-r="Cuisine"],.rub[data-r="Sport"]{background:#f0f0ef;color:#4a4a4a;}
+  h3.it{font-size:20px;font-weight:650;letter-spacing:-.3px;margin-bottom:8px;line-height:1.3;}
+  .it-text{font-size:15.5px;color:#2c2c2c;}
+  .it-text em{color:#111;font-style:normal;font-weight:600;}
+
+  .boxes{display:grid;gap:14px;grid-template-columns:1fr 1fr;margin-top:4px;}
+  .box{border-radius:14px;padding:18px 20px;font-size:14.5px;}
+  .box.saviez{background:#f3f7f4;border-left:3px solid var(--green);}
+  .box.data{background:#d9f0e3;border-left:3px solid var(--green);grid-column:1 / -1;}
+  .box.data .fig{display:block;font-size:26px;font-weight:700;letter-spacing:-.8px;color:#0b6b43;margin-bottom:5px;line-height:1.2;}
+  .box.data .fig small{font-size:15px;font-weight:600;letter-spacing:0;color:#0b6b43;opacity:.75;}
+  .box.ilya{background:#fdf7ea;border-left:3px solid var(--yellow);}
+  .box b{display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;color:var(--muted);}
+  .ilya .years{display:block;font-size:22px;font-weight:700;letter-spacing:-.5px;color:var(--red);margin-bottom:4px;}
+
+  .locked-view{text-align:center;padding:70px 24px;border:1px dashed var(--line);border-radius:16px;background:var(--card);}
+  .locked-view .ic{font-size:34px;margin-bottom:14px;}
+  .locked-view h3{font-size:21px;font-weight:650;margin-bottom:8px;letter-spacing:-.3px;}
+  .locked-view p{color:var(--muted);font-size:15px;max-width:400px;margin:0 auto;}
+  .locked-view .cd{
+    margin-top:18px;display:inline-block;font-variant-numeric:tabular-nums;
+    font-size:20px;font-weight:700;letter-spacing:-.3px;color:var(--green);
+    background:#eef4f0;border-radius:10px;padding:8px 16px;
+  }
+  #progress-label{font-variant-numeric:tabular-nums;}
+
+  /* ---------- Interro ---------- */
+  .q{padding-bottom:22px;margin-bottom:22px;border-bottom:1px solid var(--line);}
+  .q .qn{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .q h3{font-size:18px;font-weight:650;letter-spacing:-.2px;margin-bottom:12px;line-height:1.35;}
+  .opts{display:grid;gap:8px;}
+  .opt{
+    text-align:left;font-family:inherit;font-size:15px;color:var(--ink);
+    border:1px solid var(--line);background:var(--card);border-radius:10px;
+    padding:11px 14px;cursor:pointer;transition:all .15s ease;
+  }
+  .opt:hover:not(:disabled){border-color:var(--ink);}
+  .opt:disabled{cursor:default;}
+  .opt.good{background:#dff3e7;border-color:var(--green);color:#0b5c3a;font-weight:600;}
+  .opt.bad{background:#fdeaec;border-color:var(--red);color:#8f0d20;}
+  .explain{margin-top:10px;font-size:14px;color:#3d3d3d;background:#f6f5f2;border-left:3px solid var(--yellow);border-radius:0 8px 8px 0;padding:10px 14px;}
+  .scorebar{
+    position:sticky;bottom:12px;margin-top:10px;background:var(--ink);color:#fff;
+    border-radius:12px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  }
+  .scorebar .s{font-size:20px;font-weight:700;letter-spacing:-.5px;}
+  .scorebar .msg{font-size:13.5px;color:rgba(255,255,255,.75);}
+  .scorebar button{
+    font-family:inherit;font-size:13px;border:1px solid rgba(255,255,255,.35);background:transparent;
+    color:#fff;border-radius:20px;padding:6px 14px;cursor:pointer;
+  }
+
+  footer{margin-top:46px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+
+  @media (max-width:560px){
+    header{padding:34px 0 20px;}
+    h1{font-size:29px;}
+    nav{grid-template-columns:repeat(6,1fr);}
+    .boxes{grid-template-columns:1fr;}
+    h3.it{font-size:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="flagbar"><span></span><span></span><span></span></div>
+    <h1>La Gazette de Douala</h1>
+    <p class="tagline">Dix jours, dix éditions, soixante faits (et il y a une interro à la fin!) Ingénierie, histoire, musique, sport, cuisine, vocabulaire, climat, politique : se diversifier c'est la clef.</p>
+    <div class="progress"><span id="progress-label"></span></div>
+  </header>
+
+  <div class="rail">
+    <div class="track"></div>
+    <div class="fill" id="rail-fill" style="width:0"></div>
+    <div class="ticks" id="rail-ticks"></div>
+    <div class="crane" id="crane" style="left:0">
+      <svg viewBox="0 0 76 50" xmlns="http://www.w3.org/2000/svg" aria-label="grue sur chenilles">
+        <!-- flèche treillis, pivot (50,36), inclinée à 50° -->
+        <g transform="translate(50,36) rotate(-50)">
+          <path d="M1 -2.2 L5 2.2 L9 -2.2 L13 2.2 L17 -2.2 L21 2.2 L25 -2.2 L29 2.2 L33 -2.2"
+                stroke="#e0ac00" stroke-width="1" fill="none"/>
+          <path d="M5 -2.2 L5 2.2 M13 -2.2 L13 2.2 M21 -2.2 L21 2.2 M29 -2.2 L29 2.2"
+                stroke="#e0ac00" stroke-width=".8"/>
+          <path d="M0 -2.2 L34 -2.2 M0 2.2 L34 2.2" stroke="#f2c200" stroke-width="1.9"
+                stroke-linecap="round"/>
+        </g>
+        <!-- mât arrière et haubans de flèche -->
+        <path d="M34 33 L32 23" stroke="#141414" stroke-width="1.3"/>
+        <path d="M32 23 L71.5 10.2 M32 23 L26 32.6" stroke="#141414" stroke-width=".8" fill="none"/>
+        <!-- câble de levage et crochet -->
+        <path d="M71.5 10.2 L71.5 27" stroke="#141414" stroke-width=".8"/>
+        <rect x="69.9" y="27" width="3.2" height="3.6" rx=".6" fill="#c8102e"/>
+        <!-- superstructure, cabine, contrepoids -->
+        <rect x="22" y="32" width="8" height="10" rx="1" fill="#141414"/>
+        <rect x="28" y="33" width="20" height="9" rx="1.2" fill="#f2c200"/>
+        <rect x="43.5" y="29.5" width="6.5" height="6" rx="1" fill="#141414"/>
+        <!-- chenilles -->
+        <rect x="24" y="42" width="28" height="6" rx="3" fill="#141414"/>
+        <path d="M28 45 L48 45" stroke="#5a5a5a" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <nav id="nav"></nav>
+  <main id="main"></main>
+
+  <footer>
+    <span>Édition spéciale · 1<sup>er</sup> – 10 août 2026</span>
+    <span>Douala, Cameroun</span>
+  </footer>
+
+</div>
+
+<script>
+const START = new Date(2026, 7, 1); // 1er août 2026
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+
+const days = [
+{
+  theme:"Arrivée",
+  items:[
+    {r:"Histoire", t:"La ville qui a donné son nom au pays",
+     x:"Le comptoir allemand fondé en 1884 s'appelait « Kamerunstadt ». Le nom a débordé sur tout le territoire pour devenir le Cameroun, tandis que la ville prenait par décret, en 1901, celui du peuple Duala. Quant à « Kamerun », il vient du portugais <em>rio dos Camarões</em>, la rivière des crevettes, ce que les navigateurs du XV<sup>e</sup> siècle ont trouvé en remontant l'estuaire."},
+    {r:"Climat", t:"Tu arrives au pire mois — et c'est plutôt une bonne nouvelle",
+     x:"Août est le mois le plus arrosé : environ <em>690 mm</em>, sur un total annuel de 3 600 à 4 000 mm. C'est aussi le plus frais (25-26 °C de moyenne) et le plus couvert, avec une humidité proche de 90 %. Averses brèves et violentes plutôt que crachin continu, ciel bas permanent, et une vraie fenêtre de travaux entre décembre et février."},
+    {r:"Société", t:"Se déplacer : jaune, à deux roues, ou pas du tout",
+     x:"Plus de <em>70 000 motos-taxis</em> circulent à Douala et assurent plus du tiers des déplacements des ménages — les seuls à passer partout aux heures de pointe, et aussi les plus dangereux (sept accidents sur dix en impliquent une). Les taxis jaunes fonctionnent selon deux formules : la « course », privée, et la « charge », partagée et très bon marché."}
+  ],
+  data:"<span class='fig'>−7,00 m <small>de cote entretenue</small></span>La cote du chenal d'accès, maintenue par dragage permanent. Avec un marnage minimal de 2 m dans l'estuaire, cela donne des tirants d'eau admissibles de l'ordre de 9,00 m. Particularité locale : la « crème de vase » y est assez épaisse pour que la notion même de fond navigable se discute.",
+  saviez:"Le camfranglais, sociolecte des villes camerounaises, s'entend partout : « c'est comment&nbsp;? » pour dire bonjour, « je gère » pour dire que c'est sous contrôle, et « on est ensemble » pour clore à peu près n'importe quelle conversation.",
+  ilyaN:112, ilyaT:"1<sup>er</sup> août 1914",
+  ilyaX:"La Première Guerre mondiale éclate. Elle déclenche au Cameroun une campagne militaire qui durera jusqu'en février 1916 et mettra fin à la présence allemande."
+},
+{
+  theme:"L'argent, les gens, l'assiette",
+  items:[
+    {r:"Économie", t:"Tes francs CFA de Dakar ne valent rien ici",
+     x:"Il existe <em>deux</em> francs CFA. Celui de l'UEMOA, émis par la BCEAO à Dakar, et celui de la CEMAC, émis par la BEAC à Yaoundé. Même parité avec l'euro, aucune interchangeabilité : depuis 1993, chaque banque centrale a cessé de racheter les billets de l'autre zone. Les coupures rapportées du Sénégal sont, ici, du papier."},
+    {r:"Population", t:"Quatre millions d'habitants, des Sawa minoritaires chez eux",
+     x:"Les Sawa — Duala, Bassa et peuples voisins du littoral — restent les propriétaires fonciers historiques, mais ne forment plus qu'une petite part de l'agglomération. Les Bamiléké, venus des hautes terres de l'Ouest, y sont si nombreux qu'on en compterait plus à Douala que dans n'importe quelle ville de leur région d'origine. Cet écart entre foncier coutumier et peuplement réel explique beaucoup de choses."},
+    {r:"Cuisine", t:"Le ndolé, plat du littoral devenu emblème national",
+     x:"Feuilles de ndolé longuement bouillies pour en retirer l'amertume, pâte d'arachide, crevettes ou viande. C'est une recette côtière, sawa, promue plat national. On la mange avec du plantain ou du <em>miondo</em> — des bâtons de manioc fermenté cuits dans des feuilles, cousins du bobolo, en plus fin."}
+  ],
+  data:"<span class='fig'>12,5 M<small> de tonnes par an</small></span>Le trafic du Port autonome de Douala. Il représente plus de 90 % du trafic portuaire camerounais, et environ 80 % de l'activité industrielle du pays en dépend directement. C'est aussi, historiquement, le premier port de la zone CEMAC.",
+  saviez:"Le Cameroun est officiellement bilingue français-anglais et fait cohabiter deux traditions juridiques, droit civil et <i>common law</i>. Pour un contrat, une norme ou un contentieux, savoir de quel côté on se situe change tout.",
+  ilyaN:142, ilyaT:"juillet 1884",
+  ilyaX:"Les rois Bell et Akwa signent le traité germano-douala plaçant le territoire sous protectorat allemand — l'acte de naissance du Cameroun colonial."
+},
+{
+  theme:"Ouvrages d'art",
+  items:[
+    {r:"Ingénierie", t:"Des pieux de 65 mètres sous le deuxième pont",
+     x:"Le deuxième pont sur le Wouri (chantier 2013-2017) fait 760 m de long et 25 m de large, et porte cinq voies routières plus deux voies ferrées. Ses appuis sont des chevêtres encastrés sur des <em>pieux forés de 2,50 m de diamètre descendus à environ 65 m</em>, bétonnés sous l'eau. Groupement Sogea-Satom (Vinci), fondations Soletanche Bachy. L'ordre de grandeur de la fiche résume à lui seul la géotechnique du delta."},
+    {r:"Histoire", t:"Avant 1955, la traversée se faisait en bac",
+     x:"Le premier pont sur le Wouri, inauguré en mai 1955 après quatre ans de travaux, était alors le plus long pont en béton d'Afrique. Il a commandé toute l'urbanisation de Bonabéri sur l'autre rive, et il est resté seul en service pendant plus de soixante ans — avec les conséquences qu'on imagine sur un axe unique reliant le port à l'ouest du pays."},
+    {r:"Sport", t:"Roger Milla a commencé de l'autre côté du pont",
+     x:"Avant les Coupes du monde, Milla a joué au Léopard de Douala de 1970 à 1974 : <em>89 buts en 116 matchs</em> et deux titres de champion du Cameroun. Il deviendra en 1994, à 42 ans, le plus vieux buteur de l'histoire de la Coupe du monde. À Douala, le football de club est une affaire de quartiers autant que de sport."}
+  ],
+  data:"<span class='fig'>38 bouées <small>latérales AISM</small></span>Le balisage du chenal d'accès, réparti entre partie extérieure et partie intérieure sur une cinquantaine de kilomètres. Le chenal intérieur — 25 km de long, 150 m de large — est celui qui s'envase le plus vite : c'est là que se concentre l'effort de dragage.",
+  saviez:"Le préfixe <i>bona-</i> signifie « les gens de » en duala. Bonanjo, Bonapriso, Bonabéri, Bonamoussadi : les noms de quartiers ne sont pas de la toponymie administrative, ce sont des revendications lignagères — utile à savoir dès qu'on parle d'emprises.",
+  ilyaN:186, ilyaT:"10 juin 1840",
+  ilyaX:"Signature d'un traité anglo-douala avec les rois Bell et Akwa interdisant la traite des esclaves : les Britanniques étaient sur l'estuaire bien avant les Allemands."
+},
+{
+  theme:"Le sol et l'eau",
+  items:[
+    {r:"Territoire", t:"Une ville entière entre 0 et 12 mètres d'altitude",
+     x:"Douala tient dans cette seule tranche altimétrique, sur le delta du Wouri, avec des pentes de 3 à 6 %. Les bas-fonds sont des alluvions récentes mal consolidées ; les plateaux, des alluvions anciennes entaillées de vallées. Portance médiocre, nappe affleurante : deux paramètres qui commandent à peu près toutes les notes de calcul locales."},
+    {r:"Climat", t:"L'urbanisation contre l'hydraulique",
+     x:"Entre 1986 et 2017, la ville s'est étendue d'environ <em>450 hectares par an</em>, largement sur les zones basses. Marécages comblés, constructions dans les lits mineurs, imperméabilisation généralisée : les capacités de rétention naturelles ont disparu au moment précis où le ruissellement augmentait. Les inondations d'août sont autant un sujet d'urbanisme que de pluviométrie."},
+    {r:"Culture", t:"Le Ngondo, ou le fleuve comme institution",
+     x:"Chaque année, les peuples Sawa se rassemblent sur les rives du Wouri pour le Ngondo. Temps fort : un initié plonge et rapporte un message des <em>miengu</em>, les génies des eaux. Derrière la fête — courses de pirogues, luttes, danses — l'assemblée du Ngondo reste une instance de représentation politique des Sawa, notamment sur le foncier."}
+  ],
+  data:"<span class='fig'>93 550 ha <small>de mangrove pure</small></span>Dans l'estuaire du Cameroun, sur un ensemble d'environ 203 600 ha avec les forêts côtières et zones associées. Entre 2000 et 2015, la mangrove estuarienne a perdu près de 14 % de sa surface — bois de fumage, urbanisation, remblais. Or c'est précisément ce qui amortit la houle et fixe les sédiments.",
+  saviez:"Le mont Cameroun, à environ 70 km à l'ouest, culmine à 4 095 m et reste un volcan actif, avec plusieurs éruptions depuis 1999. Son versant de Debundscha est l'un des points les plus arrosés de la planète — même mécanisme orographique que celui qui vide la mousson sur Douala.",
+  ilyaN:86, ilyaT:"août 1940",
+  ilyaX:"Le Cameroun bascule dans la France libre : le débarquement des forces du colonel Leclerc à Douala fait de la ville l'une des premières bases ralliées à de Gaulle en Afrique."
+},
+{
+  theme:"Corridors et rapports de force",
+  items:[
+    {r:"Économie", t:"Le corridor, prolongement naturel du quai",
+     x:"Environ <em>4 500 tonnes par jour</em> quittent le port par le rail vers Ngaoundéré — trois à quatre jours de trajet — avant de repartir par la route vers le Tchad et la Centrafrique. Le rail assure près de 40 % du fret sur cet axe, et un service conteneurs annoncé à 36-48 h a été lancé fin 2025. Un projet de corridor ferroviaire Cameroun-Tchad est en phase préparatoire."},
+    {r:"Politique", t:"Douala la rebelle",
+     x:"Depuis l'époque coloniale, Douala est le principal foyer de contestation du pays. La ligne de fracture se lit dans la géographie urbaine : Akwa et Bonapriso concentrent affaires et résidentiel aisé, pendant que New Bell, Bépanda ou Village accueillent l'essentiel de la population. Pour un chantier, cela signifie surtout que le risque social a ici une géographie précise."},
+    {r:"Société", t:"La crise anglophone, à connaître même de loin",
+     x:"Le pays réunit deux héritages coloniaux, français et britannique. Depuis 2016, les régions anglophones du Nord-Ouest et du Sud-Ouest connaissent un conflit qui a provoqué d'importants déplacements de population, dont une partie vers Douala. C'est l'un des moteurs de la croissance démographique récente de la ville — et un sujet à aborder avec prudence."}
+  ],
+  data:"<span class='fig'>420 MW <small>depuis mars 2025</small></span>Puissance totale du barrage de Nachtigal sur la Sanaga, dont le dernier groupe est entré en service le 18 mars 2025. Il fournit de l'ordre de 30 % de la consommation du réseau interconnecté sud, celui qui alimente Douala. Les délestages restent pourtant un paramètre de planning à part entière.",
+  saviez:"Formule locale : « ce qui se décide à Yaoundé se joue à Douala ». 250 km séparent la capitale politique de la capitale économique, et les deux villes ne fonctionnent pas au même rythme ni selon les mêmes codes.",
+  ilyaN:35, ilyaT:"1991",
+  ilyaX:"L'opération « villes mortes » paralyse Douala des mois durant — commerces fermés plusieurs jours par semaine — pour exiger une conférence nationale et le multipartisme."
+},
+{
+  theme:"Ce que la ville a exporté",
+  items:[
+    {r:"Musique", t:"Le makossa est sorti des bars du port",
+     x:"Né à Douala dans les années 1950-60, le makossa croise les rythmes sawa, le highlife ghanéen et la soul : lignes de basse marquées, cuivres éclatants. La ville a fourni la quasi-totalité de ses grands noms — Manu Dibango, Ben Decca, Petit-Pays (né à Douala en 1967, couronné « roi du makossa »), et côté jazz le bassiste Richard Bona, l'un des musiciens camerounais les plus respectés au monde."},
+    {r:"Culture", t:"Douze mètres de ferraille au milieu d'un rond-point",
+     x:"Au rond-point Deïdo se dresse « La Nouvelle Liberté » de Joseph-Francis Sumégné : <em>12 mètres, 8 tonnes</em> de rebuts métalliques assemblés, créée en 1996 et installée définitivement en 2007. Elle rend hommage à une compétence très locale — démonter, récupérer, réassembler — et sert aujourd'hui de repère géographique autant que de symbole."},
+    {r:"Cuisine", t:"Le mbongo tchobi, la sauce noire des Bassa",
+     x:"Une sauce d'un noir profond, obtenue en <em>brûlant</em> l'épice mbongo avant de la piler : la couleur ne vient pas d'un colorant mais de la carbonisation contrôlée. Plat bassa par excellence, servi avec du plantain, du macabo ou du miondo. Piquant, fumé, et sans équivalent en Afrique de l'Ouest."}
+  ],
+  data:"<span class='fig'>≈ 167 000 <small>emplois par an</small></span>Estimation des emplois directs et indirects générés par la place portuaire de Douala. C'est l'ordre de grandeur qui explique pourquoi toute décision technique — cote de dragage, concession de terminal, procédure de contrôle — devient instantanément une décision politique.",
+  saviez:"Le bikutsi, l'autre grand genre camerounais, vient des Beti du Centre : rythme ternaire et frappe du sol — <i>biku</i>, frapper, <i>tsi</i>, la terre. La rivalité makossa (côte, Douala) / bikutsi (plateau, Yaoundé) a longtemps recouvert une rivalité régionale bien réelle.",
+  ilyaN:54, ilyaT:"juillet 1972",
+  ilyaX:"Sortie de « Soul Makossa » de Manu Dibango, enregistré presque par accident en face B d'un morceau écrit pour la CAN. Repéré dans les clubs new-yorkais, il devient la chanson africaine la plus samplée de l'histoire."
+},
+{
+  theme:"Qui commande sur la terre",
+  items:[
+    {r:"Histoire", t:"Des chefferies toujours actives",
+     x:"En 1792 commence le règne de Bell I, fondateur de la dynastie qui domine Bonanjo. Les chefferies sawa — Bell, Akwa, Deido, Bonabéri — n'ont plus de pouvoir politique formel, mais restent des interlocuteurs réels sur les questions de terre, d'accès aux berges et de compensation. Les ignorer au montage d'un projet est une erreur classique."},
+    {r:"Architecture", t:"La pagode de Bonanjo, un manifeste architectural",
+     x:"Construite en 1905 pour le roi Rudolf Duala Manga Bell, elle adopte des formes d'inspiration extrême-orientale en plein urbanisme colonial allemand. Le geste n'a rien de décoratif : afficher une architecture qui ne doit rien au colonisateur était déjà une position politique. Le bâtiment abrite toujours le palais des rois Bell."},
+    {r:"Sport", t:"42 km et 4 095 m de dénivelé, deux fois par an dans les jambes",
+     x:"La Course de l'Espoir, organisée depuis 1996 à Buéa, consiste à monter puis redescendre le mont Cameroun : environ <em>42 km</em>, une des courses de montagne les plus dures du continent. En 2026, plus de 600 athlètes au départ, et un vainqueur en 4 h 24 min. À deux heures de route de Douala — de quoi occuper un week-end de manière définitive."}
+  ],
+  data:"<span class='fig'>12,5 Mds FCFA <small>de résultat net (2024)</small></span>Le bénéfice du Port autonome de Douala, en recul d'environ 15 % sur un an. Deux causes structurelles : le coût permanent du dragage, et la montée en puissance d'un concurrent en eau profonde au sud. Un port fluvial coûte cher à garder ouvert.",
+  saviez:"Le missionnaire britannique Alfred Saker a installé une imprimerie à Douala au XIX<sup>e</sup> siècle et traduit la Bible en duala. La langue a donc été écrite et imprimée très tôt, ce qui en a fait longtemps la langue véhiculaire de toute la côte.",
+  ilyaN:138, ilyaT:"1888",
+  ilyaX:"Theodor Christaller fonde la première école du territoire sur le plateau Joss — l'origine de la scolarisation en langue allemande, puis du système éducatif camerounais."
+},
+{
+  theme:"8 août 1914",
+  items:[
+    {r:"Territoire", t:"Le plateau Joss, ou l'origine du conflit",
+     x:"Les Allemands ont voulu réserver le plateau Joss — le point haut, sain et bien drainé de la ville — à l'administration et aux Européens, en expropriant les Duala qui l'occupaient. Une décision d'urbanisme sanitaire en apparence, qui a déclenché le conflit majeur de toute la période coloniale et structure encore la géographie sociale de Douala."},
+    {r:"Population", t:"New Bell, un quartier né d'une expropriation",
+     x:"New Bell — la « nouvelle Bell » — est le lieu de relogement des Duala chassés du plateau. Un siècle plus tard, ce quartier de relégation est l'un des plus peuplés et des plus vivants de la ville, et reste l'épicentre des mobilisations doualaises. La forme urbaine garde la trace exacte d'une décision administrative de 1914."},
+    {r:"Langue", t:"« Ashia » : le mot le plus utile du pays",
+     x:"Venu du pidgin camerounais, <em>ashia</em> s'emploie à peu près partout : compassion pour qui est malade ou fatigué, condoléances, félicitations après une réussite, encouragement à qui travaille sous la pluie — et, sur le bon ton, une ironie parfaitement claire. Un mot, cinq usages : c'est le meilleur investissement linguistique du séjour."}
+  ],
+  data:"<span class='fig'>49 jours <small>de scanning bloqué</small></span>Du 1<sup>er</sup> janvier au 18 février 2026, le contrôle scanner des conteneurs a été paralysé par un litige entre l'opérateur historique et un nouvel entrant, doublé d'une contestation tarifaire du patronat. Coût avancé dans la presse économique : de l'ordre de 250 milliards de FCFA, avec un effet mesuré sur les prix jusqu'à N'Djamena et Bangui.",
+  saviez:"Le soir, le vrai rituel doualais n'est pas le restaurant mais le poisson braisé de rue, servi avec plantain et piment — accompagné, pour les amateurs, de <i>matango</i>, le vin de palme, dont l'amertume évolue au fil de la journée de fermentation.",
+  ilyaN:112, ilyaT:"8 août 1914",
+  ilyaX:"Rudolf Duala Manga Bell est pendu à Douala pour « haute trahison », avec son secrétaire Ngosso Din, après avoir contesté l'expropriation par voie légale jusqu'au Reichstag. Le même jour, à Ebolowa, Martin-Paul Samba est fusillé."
+},
+{
+  theme:"Sortir de la ville",
+  items:[
+    {r:"Territoire", t:"« L'Afrique en miniature », et ce n'est pas qu'un slogan",
+     x:"En partant de Douala, on passe de la mangrove équatoriale aux hauts plateaux de l'Ouest, puis à la savane et enfin au Sahel du Grand Nord. Limbe et ses plages de sable noir volcanique sont à environ 70 km, Kribi à 150 km. Peu de pays offrent une telle amplitude de milieux sur un seul axe routier."},
+    {r:"Cuisine", t:"L'eru, ou passer la frontière linguistique par l'assiette",
+     x:"Spécialité des régions anglophones du Sud-Ouest : feuilles d'okok finement ciselées, waterleaf, huile de palme, bœuf, poisson fumé et crevettes séchées. On le mange souvent avec du <em>garri</em>. Changer de région au Cameroun, c'est changer de cuisine aussi nettement que de langue administrative."},
+    {r:"Sport", t:"Un stade de 50 000 places au sud-est de la ville",
+     x:"Le stade de Japoma a été construit pour la Coupe d'Afrique des Nations organisée par le Cameroun et a accueilli plusieurs matchs du tournoi. Il a fait basculer tout un secteur périurbain : voiries, dessertes, foncier. Un cas d'école de ce qu'un grand équipement sportif provoque sur une frange urbaine encore mal desservie."}
+  ],
+  data:"<span class='fig'>1 985 m³/s <small>de débit moyen</small></span>Le débit de la Sanaga à Edéa, à 67 km de Douala. C'est cette hydrologie qui a justifié le barrage mis en service en 1954, puis la fonderie d'aluminium Alucam en 1957, portée à 50 000 t/an dès 1958 : énergie au fil de l'eau d'un côté, port à moins de 70 km de l'autre. Le schéma industriel le plus abouti du pays.",
+  saviez:"Le koki est un autre classique de la région : une pâte de haricots niébé pilés, montée à l'huile de palme et cuite à la vapeur dans des feuilles de bananier. C'est une spécialité des Mbo'o du Moungo, sur la route qui monte vers l'Ouest.",
+  ilyaN:66, ilyaT:"1<sup>er</sup> janvier 1960",
+  ilyaX:"Le Cameroun accède à l'indépendance. Douala, déjà capitale économique, restera la ville la plus peuplée du pays sans jamais devenir capitale politique."
+},
+{
+  theme:"S'installer pour longtemps",
+  items:[
+    {r:"Langue", t:"Duala le peuple, Douala la ville",
+     x:"L'usage veut qu'on écrive <em>Duala</em> pour le peuple et la langue, <em>Douala</em> pour la ville — une distinction héritée des transcriptions coloniales, allemande puis française. Le duala reste une langue de culture, de liturgie et de chanson sur toute la côte, même si le français, l'anglais et le pidgin occupent l'espace public."},
+    {r:"Population", t:"Les périphéries d'aujourd'hui étaient des marécages hier",
+     x:"Yassa, Japoma, Logbessou : les fronts d'urbanisation actuels étaient encore agricoles ou humides il y a quelques décennies. Avec une population très jeune et l'une des croissances urbaines les plus rapides d'Afrique centrale, la ville se construit plus vite qu'elle ne se planifie — d'où l'écart permanent entre les documents d'urbanisme et le terrain."},
+    {r:"Économie", t:"Le centre de gravité de la CEMAC",
+     x:"Port, industrie, banques, sièges sociaux : Douala fonctionne comme la capitale économique d'une zone de six pays, bien au-delà du Cameroun. Pour quelqu'un qui vient travailler sur les ouvrages maritimes, c'est le meilleur poste d'observation de la région — et sans doute pas la dernière fois que le nom de cette ville apparaîtra sur un contrat. Bon séjour."}
+  ],
+  data:"<span class='fig'>16 m <small>de tirant d'eau à Kribi</small></span>Contre 7 à 9 m à Douala. Le port en eau profonde ouvert à 150 km au sud aligne un quai à conteneurs de 715 m et une capacité théorique d'un million d'EVP ; depuis 2022, il revendique le leadership du trafic conteneurisé national. La question des dix prochaines années : que devient une place portuaire fluviale quand un port en eau profonde s'ouvre à côté.",
+  saviez:"L'art contemporain doualais s'expose dans la rue plutôt qu'en galerie : le centre doual'art et son Salon Urbain de Douala installent depuis vingt ans des œuvres dans l'espace public des quartiers populaires, souvent conçues avec leurs habitants.",
+  ilyaN:47, ilyaT:"1979",
+  ilyaX:"L'Union sportive de Douala remporte la Coupe d'Afrique des clubs champions — le premier titre continental du club, et un souvenir encore très vivace dans la ville."
+}
+];
+
+/* ---------- L'interro finale ---------- */
+const quiz = [
+  {q:"À quelle cote le chenal d'accès du port de Douala est-il entretenu&nbsp;?",
+   o:["−4,50 m","−7,00 m","−13,00 m"],a:1,
+   e:"Soit des tirants d'eau admissibles d'environ 9,00 m en tenant compte des 2 m de marnage minimal."},
+  {q:"Tu arrives avec des billets CFA rapportés de Dakar. Que peux-tu en faire à Douala&nbsp;?",
+   o:["Les utiliser normalement, c'est la même monnaie","Rien : ce sont deux francs CFA distincts et non interchangeables","Les changer à parité dans n'importe quelle boutique"],a:1,
+   e:"CFA BCEAO (UEMOA) et CFA BEAC (CEMAC) ont la même parité avec l'euro, mais chaque banque centrale a cessé de racheter les billets de l'autre depuis 1993."},
+  {q:"Jusqu'à quelle profondeur descendent les pieux forés du deuxième pont sur le Wouri&nbsp;?",
+   o:["environ 25 m","environ 65 m","environ 120 m"],a:1,
+   e:"Des pieux de 2,50 m de diamètre, bétonnés sous l'eau — la géotechnique du delta en une seule cote."},
+  {q:"Combien de mangrove l'estuaire du Cameroun a-t-il perdu entre 2000 et 2015&nbsp;?",
+   o:["environ 2 %","environ 14 %","environ 45 %"],a:1,
+   e:"Sur environ 93 550 ha de mangrove pure — bois de fumage, remblais, urbanisation. C'est pourtant ce qui amortit la houle et fixe les sédiments."},
+  {q:"Quelle part du fret le rail assure-t-il sur l'axe Douala–Ngaoundéré&nbsp;?",
+   o:["environ 10 %","environ 40 %","environ 75 %"],a:1,
+   e:"Soit près de 4 500 tonnes par jour, avant réexpédition par la route vers le Tchad et la Centrafrique."},
+  {q:"Que signifient les deux syllabes de « bikutsi »&nbsp;?",
+   o:["« chanter la nuit »","« frapper la terre »","« danser en cercle »"],a:1,
+   e:"<i>Biku</i>, frapper ; <i>tsi</i>, la terre. Le bikutsi vient des Beti du Centre, quand le makossa est né sur la côte, à Douala."},
+  {q:"Quelle distance couvre la Course de l'Espoir sur le mont Cameroun&nbsp;?",
+   o:["environ 12 km","environ 42 km","environ 90 km"],a:1,
+   e:"Montée et descente d'un sommet à 4 095 m, avec un vainqueur 2026 en 4 h 24 min."},
+  {q:"Dans quel cas peut-on dire « ashia »&nbsp;?",
+   o:["Uniquement pour présenter ses condoléances","Uniquement pour féliciter quelqu'un","À peu près partout : compassion, condoléances, félicitations, encouragement"],a:2,
+   e:"Un mot de pidgin camerounais, cinq usages selon le ton. Le meilleur investissement linguistique du séjour."},
+  {q:"Quel est le débit moyen de la Sanaga à Edéa&nbsp;?",
+   o:["environ 200 m³/s","environ 1 985 m³/s","environ 9 000 m³/s"],a:1,
+   e:"C'est cette hydrologie qui a justifié le barrage de 1954, puis la fonderie Alucam en 1957 — à 67 km du port."},
+  {q:"Quel tirant d'eau le port en eau profonde de Kribi offre-t-il&nbsp;?",
+   o:["9 m","16 m","24 m"],a:1,
+   e:"Contre 7 à 9 m à Douala. Depuis 2022, Kribi revendique le leadership du trafic conteneurisé national."}
+];
+
+const DAYS_FR=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+const MONTHS_FR=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const QUIZ_INDEX = days.length; // 11e tuile
+
+function dayDate(i){const d=new Date(START);d.setDate(d.getDate()+i);return d;}
+function fmtLong(d){return DAYS_FR[d.getDay()]+" "+(d.getDate()===1?"1er":d.getDate())+" "+MONTHS_FR[d.getMonth()]+" "+d.getFullYear();}
+function fmtShort(d){return d.getDate()+"/"+(d.getMonth()+1);}
+function midnight(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+
+/* Ouverture : 1er août 2026 à 20h00 (UTC+1, heure de Douala), puis une édition
+   toutes les 24 h. Horaires absolus : identiques quel que soit le fuseau du lecteur. */
+const OPEN_UTC = Date.UTC(2026, 7, 1, 19, 0, 0);
+const DAY_MS = 86400000;
+function unlockTime(i){return OPEN_UTC + i*DAY_MS;}
+function isUnlocked(i){return PREVIEW || Date.now() >= unlockTime(i);}
+
+function countUnlocked(){let n=0;for(let i=0;i<days.length;i++){if(isUnlocked(i))n++;}return n;}
+function fmtLeft(ms){
+  const s=Math.max(0,Math.floor(ms/1000));
+  const j=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60), sec=s%60;
+  const p=n=>String(n).padStart(2,'0');
+  if(j>0) return j+" j "+p(h)+" h "+p(m)+" min";
+  return p(h)+" h "+p(m)+" min "+p(sec)+" s";
+}
+
+let unlockedCount=countUnlocked();
+let quizWasOpen=isUnlocked(QUIZ_INDEX);
+let todayIndex = unlockedCount>0 && unlockedCount<=days.length ? unlockedCount-1 : -1;
+let current = isUnlocked(QUIZ_INDEX) ? QUIZ_INDEX : (unlockedCount>0 ? unlockedCount-1 : 0);
+
+const answers = new Array(quiz.length).fill(null);
+
+// mélange des propositions à chaque ouverture de la page
+quiz.forEach(q=>{
+  const idx=q.o.map((_,i)=>i);
+  for(let i=idx.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+  q.view=idx.map(k=>q.o[k]);
+  q.ashuf=idx.indexOf(q.a);
+});
+
+function headerLabel(){
+  if(isUnlocked(QUIZ_INDEX)) return "Les 10 éditions sont parues — l'interro est ouverte";
+  const next=unlockedCount;                       // prochaine tuile à ouvrir
+  const left=fmtLeft(unlockTime(next)-Date.now());
+  const quoi = next===0 ? "Première édition" : (next===QUIZ_INDEX ? "L'interro" : "Édition "+(next+1));
+  const parues = unlockedCount===0 ? "" : unlockedCount+" édition"+(unlockedCount>1?'s':'')+" sur 10 · ";
+  return parues+quoi+" dans <b style=\"color:#141414\">"+left+"</b>";
+}
+
+const nav=document.getElementById('nav');
+function buildNav(){
+  nav.innerHTML='';
+  for(let i=0;i<=QUIZ_INDEX;i++){
+    const b=document.createElement('button');
+    const isQuiz = i===QUIZ_INDEX;
+    b.className='chip'+(isUnlocked(i)?'':' locked')+(i===todayIndex?' today':'')+(isQuiz?' quiz':'');
+    const label = isUnlocked(i) ? (isQuiz?'?':(i+1)) : '&#128274;';
+    b.innerHTML='<span class="n">'+label+'</span><span class="dt">'+(isQuiz?'interro':fmtShort(dayDate(i)))+'</span>';
+    b.onclick=()=>{current=i;render();};
+    nav.appendChild(b);
+  }
+}
+buildNav();
+
+function renderQuiz(){
+  let html=
+    '<div class="daymeta">'+
+      '<span class="dayno">L\'interro</span>'+
+      '<span class="daydate">10 questions, une par édition</span>'+
+      '<span class="theme">Tout est dans les dix jours précédents. Aucune excuse.</span>'+
+    '</div>';
+
+  quiz.forEach((q,i)=>{
+    html+='<div class="q"><div class="qn">Question '+(i+1)+' / '+quiz.length+'</div><h3>'+q.q+'</h3><div class="opts">';
+    q.view.forEach((o,j)=>{
+      let cls='opt';
+      const done = answers[i]!==null;
+      if(done && j===q.ashuf) cls+=' good';
+      if(done && j===answers[i] && j!==q.ashuf) cls+=' bad';
+      html+='<button class="'+cls+'" data-q="'+i+'" data-o="'+j+'"'+(done?' disabled':'')+'>'+o+'</button>';
+    });
+    html+='</div>';
+    if(answers[i]!==null) html+='<div class="explain">'+(answers[i]===q.ashuf?'<b style="color:#0b6b43">Exact. </b>':'<b style="color:#a5142a">Raté. </b>')+q.e+'</div>';
+    html+='</div>';
+  });
+
+  const done = answers.filter(a=>a!==null).length;
+  const score = answers.filter((a,i)=>a===quiz[i].ashuf).length;
+  let msg;
+  if(done<quiz.length) msg = done+' réponse'+(done>1?'s':'')+' sur '+quiz.length;
+  else if(score===quiz.length) msg = "Sans faute. La gazette a bien travaillé.";
+  else if(score>=7) msg = "Solide. Tu peux parler du chenal en réunion.";
+  else if(score>=4) msg = "Passable. Une relecture des éditions s'impose.";
+  else msg = "Aïe. Ashia — et retour au jour 1.";
+
+  html+='<div class="scorebar"><span class="s">'+score+' / '+quiz.length+'</span><span class="msg">'+msg+'</span>'+
+        '<button id="reset">Recommencer</button></div>';
+
+  const main=document.getElementById('main');
+  main.innerHTML=html;
+
+  main.querySelectorAll('.opt:not(:disabled)').forEach(b=>{
+    b.onclick=()=>{answers[+b.dataset.q]=+b.dataset.o;renderQuiz();};
+  });
+  const r=document.getElementById('reset');
+  if(r) r.onclick=()=>{answers.fill(null);renderQuiz();};
+}
+
+// échelle de progression : une graduation par tuile, la grue avance avec les éditions parues
+const ticks=document.getElementById('rail-ticks');
+function buildRail(){
+  ticks.innerHTML='';
+  for(let i=0;i<=QUIZ_INDEX;i++){
+    const t=document.createElement('span');
+    const isQuiz=i===QUIZ_INDEX;
+    t.className='tick'+(isQuiz?' quiz':'')+(isUnlocked(i)?' done':'');
+    ticks.appendChild(t);
+  }
+  const slots=QUIZ_INDEX+1;                              // 11 graduations
+  const steps=isUnlocked(QUIZ_INDEX)?slots:unlockedCount; // avancement = éditions parues
+  const pos=steps<=0 ? 0.5/slots : (steps-0.5)/slots;
+  document.getElementById('crane').style.left=(pos*100)+'%';
+  document.getElementById('rail-fill').style.width=(pos*100)+'%';
+}
+buildRail();
+
+function render(){
+  document.querySelectorAll('.chip').forEach((c,i)=>c.classList.toggle('active',i===current));
+
+  document.getElementById('progress-label').innerHTML=headerLabel();
+
+  const main=document.getElementById('main');
+  const d=dayDate(current);
+
+  if(!isUnlocked(current)){
+    const isQuiz = current===QUIZ_INDEX;
+    main.innerHTML=
+      '<div class="locked-view">'+
+        '<div class="ic">&#128274;</div>'+
+        '<h3>'+(isQuiz?'L\'interro est verrouillée':'Édition du jour '+(current+1)+' verrouillée')+'</h3>'+
+        '<p>'+(isQuiz
+          ? 'Elle s\'ouvrira le '+fmtLong(d)+' à 20 h, une fois les dix éditions parues. Dix questions, une par jour.'
+          : 'Elle s\'ouvrira le '+fmtLong(d)+' à 20 h (heure de Douala). Une seule édition par jour, comme un calendrier de l\'avent.')+'</p>'+
+        '<div class="cd" id="cd-locked" data-i="'+current+'">'+fmtLeft(unlockTime(current)-Date.now())+'</div>'+
+      '</div>';
+    return;
+  }
+
+  if(current===QUIZ_INDEX){ renderQuiz(); return; }
+
+  const day=days[current];
+  let html=
+    '<div class="daymeta">'+
+      '<span class="dayno">Jour '+(current+1)+' / 10</span>'+
+      '<span class="daydate">'+fmtLong(d)+'</span>'+
+      (current===todayIndex?'<span class="todaytag">Édition du jour</span>':'')+
+      '<span class="theme">'+day.theme+'</span>'+
+    '</div>';
+
+  day.items.forEach(it=>{
+    html+='<div class="item">'+
+            '<span class="rub" data-r="'+it.r+'">'+it.r+'</span>'+
+            '<h3 class="it">'+it.t+'</h3>'+
+            '<p class="it-text">'+it.x+'</p>'+
+          '</div>';
+  });
+
+  html+='<div class="boxes">'+
+          '<div class="box data"><b>La data de l\'ingé</b>'+day.data+'</div>'+
+          '<div class="box saviez"><b>Le saviez-vous&nbsp;?</b>'+day.saviez+'</div>'+
+          '<div class="box ilya"><b>À cette date, il y a…</b><span class="years">'+day.ilyaN+' ans</span>'+
+            '<i>'+day.ilyaT+'</i> — '+day.ilyaX+'</div>'+
+        '</div>';
+
+  main.innerHTML=html;
+}
+
+render();
+
+// horloge : compte à rebours seconde par seconde, déverrouillage automatique à l'heure dite
+setInterval(function(){
+  const n=countUnlocked();
+  const quizNow=isUnlocked(QUIZ_INDEX);
+  if(n!==unlockedCount || quizNow!==quizWasOpen){
+    unlockedCount=n;
+    quizWasOpen=quizNow;
+    todayIndex = unlockedCount>0 && unlockedCount<=days.length ? unlockedCount-1 : -1;
+    buildNav(); buildRail(); render();
+    return;
+  }
+  const lbl=document.getElementById('progress-label');
+  if(lbl) lbl.innerHTML=headerLabel();
+  const cd=document.getElementById('cd-locked');
+  if(cd) cd.textContent=fmtLeft(unlockTime(+cd.dataset.i)-Date.now());
+},1000);
+</script>
+
+</body>
+</html>
